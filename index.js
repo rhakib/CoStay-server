@@ -80,7 +80,6 @@ async function run() {
                 }
             }
             const result = await roomsCollection.updateOne(filter, updated, options)
-
             res.send(result)
         })
 
