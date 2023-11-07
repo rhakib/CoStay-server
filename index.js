@@ -47,6 +47,11 @@ async function run() {
             console.log(result);
             res.send(result)
         })
+        app.get('/bookings', async (req, res) => {
+            const result = await bookingsCollection.find().toArray()
+            console.log(result);
+            res.send(result)
+        })
 
         app.post('/bookings', async (req, res) => {
             const bookings = req.body
@@ -54,6 +59,13 @@ async function run() {
             const result = await bookingsCollection.insertOne(bookings)
 
             console.log(bookings);
+            res.send(result)
+        })
+
+        app.delete('/bookings/:id', async(req, res)=>{
+            const id = req.params.id
+            const query = {_id: new ObjectId(id)}
+            const result = await bookingsCollection.deleteOne(query)
             res.send(result)
         })
 
@@ -67,7 +79,6 @@ async function run() {
                     available_seats: -1
                 }
             }
-
             const result = await roomsCollection.updateOne(filter, updated, options)
 
             res.send(result)
