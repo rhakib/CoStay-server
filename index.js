@@ -1,5 +1,5 @@
 const express = require('express')
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
 require('dotenv').config()
 const cors = require('cors')
@@ -21,44 +21,70 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  }
+    serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+    }
 });
 
 async function run() {
-  try {
-    // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    try {
+        // Connect the client to the server	(optional starting in v4.7)
+        // await client.connect();
+        // Send a ping to confirm a successful connection
+        await client.db("admin").command({ ping: 1 });
+        console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
-    //collection
-    const roomsCollection = client.db('costay').collection('rooms')
+        //collection
+        const roomsCollection = client.db('costay').collection('rooms')
+        const bookingsCollection = client.db('costay').collection('bookings')
 
 
-    //apis
-    app.get('/rooms', async(req, res)=>{
-        const result = await roomsCollection.find().toArray()
-        console.log(result);
-        res.send(result)
-    })
+        //apis
+        app.get('/rooms', async (req, res) => {
+            const result = await roomsCollection.find().toArray()
+            console.log(result);
+            res.send(result)
+        })
 
-  } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
-  }
+        app.post('/bookings', async (req, res) => {
+            const bookings = req.body
+
+            const result = await bookingsCollection.insertOne(bookings)
+
+            console.log(bookings);
+            res.send(result)
+        })
+
+        app.put('/rooms/:id', async (req, res) => {
+            const bookings = req.body
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+            const updated = {
+                $inc: {
+                    available_seats: -1
+                }
+            }
+
+            const result = await roomsCollection.updateOne(filter, updated, options)
+
+            res.send(result)
+        })
+
+    } finally {
+        // Ensures that the client will close when you finish/error
+        // await client.close();
+    }
 }
 run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-  res.send('Hello World!')
+    res.send('Hello World!')
 })
 
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
+    console.log(`Example app listening on port ${port}`)
 })
