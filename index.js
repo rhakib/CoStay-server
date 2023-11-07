@@ -79,6 +79,7 @@ async function run() {
                     available_seats: -1
                 }
             }
+            
             const result = await roomsCollection.updateOne(filter, updated, options)
             res.send(result)
         })
