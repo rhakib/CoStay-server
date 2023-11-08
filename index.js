@@ -93,7 +93,7 @@ async function run() {
             const result = await roomsCollection.updateOne(filter, updated, options)
             res.send(result)
         })
-        app.patch('/bookings/:id', async (req, res) => {
+        app.put('/bookings/:id', async (req, res) => {
             const date = req.body
             const id = req.params.id;
             console.log(id);
@@ -101,7 +101,8 @@ async function run() {
             const options = { upsert: true }
             const updated = {
                 $set: {
-                    date: date.inputValue
+                    bookingDate: date.inputValue,
+                    review: date.review
                 }
             }
             
