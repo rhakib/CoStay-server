@@ -96,6 +96,7 @@ async function run() {
         app.patch('/bookings/:id', async (req, res) => {
             const date = req.body
             const id = req.params.id;
+            console.log(id);
             const filter = { _id: new ObjectId(id) }
             const options = { upsert: true }
             const updated = {
