@@ -43,7 +43,18 @@ async function run() {
 
         //apis
         app.get('/rooms', async (req, res) => {
-            const result = await roomsCollection.find().toArray()
+
+            let sortObj = {}
+            const sortField = req.query.sortField
+            const sortOrder = req.query.sortOrder
+            
+
+            if (sortField && sortOrder) {
+                sortObj[sortField] = sortOrder;
+                // means pushing {price: 'desc/asc'} in sortObj
+            }
+
+            const result = await roomsCollection.find().sort(sortObj).toArray()
             console.log(result);
             res.send(result)
         })
@@ -70,17 +81,30 @@ async function run() {
         })
 
         app.put('/rooms/:id', async (req, res) => {
-            const bookings = req.body
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) }
             const options = { upsert: true }
             const updated = {
                 $inc: {
-                    available_seats: -1
+                    available_seats: - 1
                 }
             }
             
             const result = await roomsCollection.updateOne(filter, updated, options)
+            res.send(result)
+        })
+        app.patch('/bookings/:id', async (req, res) => {
+            const date = req.body
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+            const updated = {
+                $set: {
+                    date: date.inputValue
+                }
+            }
+            
+            const result = await bookingsCollection.updateOne(filter, updated, options)
             res.send(result)
         })
 
