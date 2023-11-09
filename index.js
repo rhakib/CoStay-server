@@ -39,6 +39,7 @@ async function run() {
         //collection
         const roomsCollection = client.db('costay').collection('rooms')
         const bookingsCollection = client.db('costay').collection('bookings')
+        const reviewCollection = client.db('costay').collection('review')
 
 
         //apis
@@ -58,8 +59,14 @@ async function run() {
             console.log(result);
             res.send(result)
         })
-        app.get('/bookings', async (req, res) => {
+        app.get('/bookings', async (req, res) => {        
+
             const result = await bookingsCollection.find().toArray()
+            console.log(result);
+            res.send(result)
+        })
+        app.get('/review', async (req, res) => {                
+            const result = await reviewCollection.find().toArray()
             console.log(result);
             res.send(result)
         })
@@ -70,6 +77,14 @@ async function run() {
             const result = await bookingsCollection.insertOne(bookings)
 
             console.log(bookings);
+            res.send(result)
+        })
+        app.post('/review', async (req, res) => {
+            const review = req.body
+
+            const result = await reviewCollection.insertOne(review)
+
+            console.log(review);
             res.send(result)
         })
 
@@ -96,13 +111,11 @@ async function run() {
         app.put('/bookings/:id', async (req, res) => {
             const date = req.body
             const id = req.params.id;
-            console.log(id);
             const filter = { _id: new ObjectId(id) }
             const options = { upsert: true }
             const updated = {
                 $set: {
                     bookingDate: date.inputValue,
-                    review: date.review
                 }
             }
             
