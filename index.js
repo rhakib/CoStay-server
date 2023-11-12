@@ -8,11 +8,12 @@ const cookieParser = require('cookie-parser')
 const port = process.env.PORT || 5000
 
 
-app.use(express.json())
 app.use(cors({
-    origin: ['http://localhost:5173'],
+    origin: ['http://localhost:5173', 'https://costay-d3e93.web.app'],
     credentials: true
 }))
+app.use(express.json())
+app.use(cookieParser())
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.opj08k2.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -28,6 +29,36 @@ const client = new MongoClient(uri, {
     }
 });
 
+const logger = (req, res, next) => {
+    console.log('log: info', req.method, req.url);
+    next();
+}
+
+
+
+// verify
+
+const verifyToken = (req, res, next) => {
+    const { token } = req.cookies
+
+
+    //if client does not send the token
+    if (!token) {
+        return res.status(401).send({ message: 'You are not authorized' })
+    }
+
+    jwt.verify(token, process.env.ACCESS_SECRET_TOKEN, (err, decoded) => {
+        if (err) {
+            return res.status(401).send({ message: 'You are not authorized' })
+        }
+
+        console.log(req.user);
+        next()
+
+    })
+
+}
+
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
@@ -42,13 +73,14 @@ async function run() {
         const reviewCollection = client.db('costay').collection('review')
 
 
+
         //apis
         app.get('/rooms', async (req, res) => {
 
             let sortObj = {}
             const sortField = req.query.sortField
             const sortOrder = req.query.sortOrder
-            
+
 
             if (sortField && sortOrder) {
                 sortObj[sortField] = sortOrder;
@@ -56,18 +88,28 @@ async function run() {
             }
 
             const result = await roomsCollection.find().sort(sortObj).toArray()
-            console.log(result);
             res.send(result)
         })
-        app.get('/bookings', async (req, res) => {        
 
-            const result = await bookingsCollection.find().toArray()
-            console.log(result);
+        app.get('/rooms/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: new ObjectId(id) }
+            const result = await roomsCollection.findOne(query)
             res.send(result)
         })
-        app.get('/review', async (req, res) => {                
+
+        app.get('/bookings', async (req, res) => {
+            
+            let query = {}
+            if (req.query?.email) {
+                query = { email: req.query.email }
+            }
+            const result = await bookingsCollection.find(query).toArray()
+            res.send(result)
+        })
+
+        app.get('/review', async (req, res) => {
             const result = await reviewCollection.find().toArray()
-            console.log(result);
             res.send(result)
         })
 
@@ -76,7 +118,7 @@ async function run() {
 
             const result = await bookingsCollection.insertOne(bookings)
 
-            console.log(bookings);
+
             res.send(result)
         })
         app.post('/review', async (req, res) => {
@@ -88,9 +130,9 @@ async function run() {
             res.send(result)
         })
 
-        app.delete('/bookings/:id', async(req, res)=>{
+        app.delete('/bookings/:id', async (req, res) => {
             const id = req.params.id
-            const query = {_id: new ObjectId(id)}
+            const query = { _id: new ObjectId(id) }
             const result = await bookingsCollection.deleteOne(query)
             res.send(result)
         })
@@ -104,7 +146,7 @@ async function run() {
                     available_seats: - 1
                 }
             }
-            
+
             const result = await roomsCollection.updateOne(filter, updated, options)
             res.send(result)
         })
@@ -118,10 +160,39 @@ async function run() {
                     bookingDate: date.inputValue,
                 }
             }
-            
+
             const result = await bookingsCollection.updateOne(filter, updated, options)
             res.send(result)
         })
+
+        app.post('/jwt', (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_SECRET_TOKEN, { expiresIn: '1h' })
+
+
+            res
+                .cookie('token', token, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+                })
+                .send({ status: true })
+
+        })
+
+        app.post('/logout', async (req, res) => {
+            const user = req.body;
+            console.log('logging out', user);
+
+            res
+                .clearCookie('token', {
+                    maxAge: 0,
+                    secure: process.env.NODE_ENV === 'production' ? true : false,
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+                })
+                .send({ status: true })
+        })
+
 
     } finally {
         // Ensures that the client will close when you finish/error
